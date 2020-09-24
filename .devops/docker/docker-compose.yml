@@ -1,0 +1,129 @@
+##
+## Name: docker-apptitude
+## Dockerfile to build a LEMP, LEMP and Node stacks images for development purposes.
+## Author: https://about.me/henrycv
+##
+## Description: this image contains the following tools:
+##  PHP 7.3.
+##  PHP 5.5.
+##  Node 12.
+##  MySQL 8.
+##  MySQL 5.
+##  NGINX 1.16.
+##  Apache 2.4.
+##
+
+version: '3'
+services:
+
+
+  docker-nginx-1.16:
+    build:
+      context: ../../
+      dockerfile: ./nginx-1.16/Dockerfile
+      args:
+        SERVER_USER: www
+    environment:
+      APP_DIR: /var/www
+    image: app-nginx-1.16
+    container_name: app-nginx-1.16
+    restart: on-failure
+    depends_on:
+      - docker-php-7.3
+      - docker-lamp-5.5
+      - docker-node-12
+    working_dir: /var/www
+    volumes:
+      - /var/www/:/var/www
+      - ./nginx-1.16/conf.d/:/etc/nginx/conf.d/
+      - ./nginx-1.16:/docker/nginx-1.16
+    ports:
+      - "80:80"
+      - "443:443"
+
+
+
+  docker-php-7.3:
+    build:
+      context: ../../
+      dockerfile: ./php-7.3/Dockerfile
+      args:
+        APP_DIR: /var/www
+        SERVER_USER: www
+    environment:
+      APP_NAME: php-7.3
+    container_name: app-php-7.3
+    image: app-php-7.3
+    restart: on-failure
+    depends_on:
+      - docker-mysql-8
+    working_dir: /var/www
+    volumes:
+      - /var/www:/var/www
+      - ./php-7.3:/docker/php-7.3
+      - ./php-7.3/config/php.ini:/usr/local/etc/php/php.ini
+
+    expose:
+    - "80"
+
+
+  docker-lamp-5.5:
+    build:
+        context: ../../
+        dockerfile: ./lamp-5.5/Dockerfile
+    container_name: app-lamp-5.5
+    image: app-lamp-5.5
+    working_dir: /var/www
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - /var/www:/var/www
+      # - ./lamp-5.5/mysql/data:/var/lib/mysql
+      - ./lamp-5.5/config/php.ini:/etc/php5/apache2/php.ini
+      - ./lamp-5.5/config/apache2.conf:/etc/apache2/apache2.conf
+      - ./lamp-5.5:/docker/lamp-5.5
+    ports:
+      - "8080:8080"
+      - "3306:3306"
+    expose:
+    - "8080"
+    - "3306"
+
+
+  docker-node-12:
+    build:
+        context: ../../
+        dockerfile: ./node-12/Dockerfile
+    container_name: app-node-12
+    image: app-node-12
+    volumes:
+      - /var/www/node-test:/usr/src/app
+      - /var/www:/var/www/
+      - ./node-12:/docker/node-12
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "3002:3002"
+    expose:
+    - "3000/tcp"
+    - "3001/tcp"
+    - "3002/tcp"
+
+
+  docker-mysql-8:
+    image: mysql:8.0.18
+    container_name: app-mysql-8
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: www
+      MYSQL_PASSWORD: www
+      MYSQL_DATABASE: test
+    restart: on-failure
+    volumes:
+      - ./mysql-8/data:/var/lib/mysql/
+      - ./mysql-8:/docker/mysql-8
+    ports:
+      - "3307:3307"
+    expose:
+      - "3307"
